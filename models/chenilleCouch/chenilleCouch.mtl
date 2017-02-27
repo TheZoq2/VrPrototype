@@ -1,0 +1,25 @@
+# Blender MTL File: 'chenilleCouch.blend'
+# Material Count: 2
+
+newmtl ChenilleClothMaterial
+Ns 47.058824
+Ka 1.000000 1.000000 1.000000
+Kd 0.325792 0.010962 0.002677
+Ks 0.100000 0.020508 0.014126
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd FlamePeaChenilleTexture.png
+map_Bump FlamePeaChenilleTextureNormalMap.png
+
+newmtl WoodMaterial
+Ns 96.078431
+Ka 1.000000 1.000000 1.000000
+Kd 0.011200 0.001943 0.000486
+Ks 0.500000 0.078932 0.009566
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd wood-texture-1437843675YVj.png
