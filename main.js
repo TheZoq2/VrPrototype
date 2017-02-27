@@ -233,7 +233,7 @@ function lookingAt(object)
     raycaster = new THREE.Raycaster(camera.position, camera.getWorldDirection());
     //raycaster.setFromCamera(new THREE.Vector2(0.5, 0.5))
 
-    var intersects = raycaster.intersectObject(object);
+    var intersects = raycaster.intersectObject(object, true);
     if(intersects.length != 0)
     {
         return true
@@ -281,7 +281,7 @@ function animate(timestamp) {
     if(intersects.length != 0)
     {
         point = intersects[0].point;
-        cursor.position.set(point.x, point.y, point.z);
+        //cursor.position.set(point.x, point.y, point.z);
     }
 
     vrDisplay.requestAnimationFrame(animate);
@@ -293,31 +293,41 @@ function onResize(e) {
     camera.updateProjectionMatrix();
 }
 
-function onClick() {
+function onClick(e) {
     floorPosition = floorPositionFromCamera();
     console.log(floorPosition);
 
     console.log(state);
 
-    if(state == LOOK_AROUND)
+    console.log(e.button)
+    if(e.button == 2)
     {
-        if(lookingAt(testObject)) {state = PLACE_LAMP};
-        if(lookingAt(couch)) {state = PLACE_COUCH; Console.log("couch")};
+        camera.position = floorPosition;
+        console.log("Moving user");
+        e.preventDefault();
     }
-    else if(state == PLACE_LAMP)
+    else
     {
-        if(floorPosition != null)
+        if(state == LOOK_AROUND)
         {
-            testObject.position.set(point.x, point.y, point.z);
-            state = LOOK_AROUND
+            if(lookingAt(testObject)) {state = PLACE_LAMP};
+            if(lookingAt(couch)) {state = PLACE_COUCH; Console.log("couch")};
         }
-    }
-    else if(state == PLACE_COUCH)
-    {
-        if(floorPosition != null)
+        else if(state == PLACE_LAMP)
         {
-            couch.position.set(point.x, point.y, point.z);
-            state = LOOK_AROUND
+            if(floorPosition != null)
+            {
+                testObject.position.set(point.x, point.y, point.z);
+                state = LOOK_AROUND
+            }
+        }
+        else if(state == PLACE_COUCH)
+        {
+            if(floorPosition != null)
+            {
+                couch.position.set(point.x, point.y, point.z);
+                state = LOOK_AROUND
+            }
         }
     }
 }
