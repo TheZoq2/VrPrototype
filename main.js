@@ -32,8 +32,14 @@ var cursor;
 var LOOK_AROUND = 0;
 var PLACE_LAMP = 1;
 var PLACE_COUCH = 2;
+var EDIT_WALL_COLOR = 3;
 
 var state = LOOK_AROUND
+var targetWall = 0;
+
+//Sphere textures
+var paintbucketCylinder;
+var paintbucketMaterial;
 
 function onLoad() {
     // Setup three.js WebGL renderer. Note: Antialiasing is a big performance hit.
@@ -50,12 +56,13 @@ function onLoad() {
     // Create a three.js camera.
     var aspect = window.innerWidth / window.innerHeight;
     camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 10000);
+    camera.rotation.order = 'YXZ';
 
     controls = new THREE.VRControls(camera);
     controls.standing = true;
     camera.position.y = controls.userHeight;
-    camera.position.x = 3;
-    camera.position.z = 3;
+    camera.position.x = 0;
+    camera.position.z = 0;
 
     // Apply VR stereo rendering to renderer.
     effect = new THREE.VREffect(renderer);
@@ -87,9 +94,9 @@ function onLoad() {
     var testGeometry = new THREE.BoxGeometry(1, 1, 1);
     testObject = new THREE.Mesh(testGeometry, new THREE.MeshPhongMaterial());
     scene.add(testObject);
-    var cursorGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-    cursor = new THREE.Mesh(cursorGeometry, new THREE.MeshPhongMaterial());
-    scene.add(cursor);
+    //var cursorGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    //cursor = new THREE.Mesh(cursorGeometry, new THREE.MeshPhongMaterial());
+    //scene.add(cursor);
 
     materials.push(new THREE.MeshPhongMaterial());
     materials.push(new THREE.MeshPhongMaterial());
@@ -156,6 +163,24 @@ function onLoad() {
     floorMaterial = new THREE.MeshPhongMaterial({map: floorTexture});
     floor = new THREE.Mesh(floorGeometry, floorMaterial);
     scene.add(floor);
+
+
+    var circumference = 20;
+    var radius = circumference / 3.14 / 2;
+    var height = 5;
+
+    var paintbucketTexture = new THREE.TextureLoader().load( "img/paintbuckets.png" );
+    var cylinderGeometry = new THREE.CylinderGeometry( radius, radius, height, 60, 1, true );
+    cylinderGeometry.applyMatrix( new THREE.Matrix4().makeScale( -1, 1, 1 ) );
+    cylinderGeometry.applyMatrix( new THREE.Matrix4().makeTranslation(0, controls.userHeight, 0));
+
+    //floorMaterial = new THREE.MeshPhongMaterial({map: floorTexture});
+    paintbucketMaterial = new THREE.MeshBasicMaterial({
+            map: paintbucketTexture,
+            transparent: true,
+    })
+    paintbucketCylinder = new THREE.Mesh(cylinderGeometry, paintbucketMaterial);
+    scene.add(paintbucketCylinder);
 
     window.addEventListener('resize', onResize, true);
     window.addEventListener('vrdisplaypresentchange', onResize, true);
@@ -241,13 +266,38 @@ function lookingAt(object)
     return false;
 }
 
+function isNearColorSelector()
+{
+    var cameraAngle = camera.rotation.y;
+    var cameraDegrees = cameraAngle / (3.14 * 2) * 360;
+
+    var camera_degrees_x = camera.rotation.x / (3.14 * 2) * 360;
+
+    var threshold = 10;
+    if(
+        (
+            cameraDegrees < -180 + threshold ||
+            (cameraDegrees > -90 - threshold && cameraDegrees < -90 + threshold) ||
+            (cameraDegrees > -threshold && cameraDegrees < threshold) ||
+            (cameraDegrees > 90 - threshold && cameraDegrees < 90 + threshold) ||
+            cameraDegrees > 180 - threshold
+        )
+        && Math.abs(camera_degrees_x) < threshold
+    )
+    {
+        return true
+    }
+    else
+    {
+        return false
+    }
+}
+
 // Request animation frame loop function
 function animate(timestamp) {
     var delta = Math.min(timestamp - lastRenderTime, 500);
     lastRenderTime = timestamp;
 
-    // Apply rotation to cube mesh
-    //cube.rotation.y += delta * 0.0006;
 
     // Only update controls if we're presenting.
     if (vrButton.isPresenting()) {
@@ -274,15 +324,15 @@ function animate(timestamp) {
     }
 
 
-
-    //Cursor
-    raycaster = new THREE.Raycaster(camera.position, camera.getWorldDirection());
-    var intersects = raycaster.intersectObjects(scene.children);
-    if(intersects.length != 0)
+    if(isNearColorSelector())
     {
-        point = intersects[0].point;
-        //cursor.position.set(point.x, point.y, point.z);
+        paintbucketCylinder.position.y = 0;
     }
+    else
+    {
+        paintbucketCylinder.position.y = -1000;
+    }
+
 
     vrDisplay.requestAnimationFrame(animate);
 }
@@ -311,7 +361,7 @@ function onClick(e) {
         if(state == LOOK_AROUND)
         {
             if(lookingAt(testObject)) {state = PLACE_LAMP};
-            if(lookingAt(couch)) {state = PLACE_COUCH; Console.log("couch")};
+            if(lookingAt(couch)) {state = PLACE_COUCH};
         }
         else if(state == PLACE_LAMP)
         {
