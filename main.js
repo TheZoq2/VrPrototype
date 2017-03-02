@@ -4,7 +4,7 @@ var lastRenderTime = 0;
 // Currently active VRDisplay.
 var vrDisplay;
 // How big of a box to render.
-var boxSize = 25;
+var boxSize = 100;
 // Various global THREE.Objects.
 var scene;
 var cube;
@@ -45,6 +45,9 @@ var paintbucketMaterial;
 var lookAroundCylinder;
 var lookAroundCylinderMaterial;
 
+var lampLight;
+var lampHeight = 2.5;
+
 function onLoad() {
     // Setup three.js WebGL renderer. Note: Antialiasing is a big performance hit.
     // Only enable it if you actually need to.
@@ -75,7 +78,7 @@ function onLoad() {
 
     // Add a repeating grid as a skybox.
     var loader = new THREE.TextureLoader();
-    loader.load('img/box.png', onTextureLoaded);
+    loader.load('img/city.jpg', onTextureLoaded);
 
 
     //var light = new THREE.PointLight()
@@ -86,10 +89,27 @@ function onLoad() {
     light.position.set(1, roomHeight, 1)
     scene.add(light);
 
+
     // Create 3D objects.
-    //var geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-    //var material = new THREE.MeshNormalMaterial();
-    //cube = new THREE.Mesh(geometry, material);
+    var onProgress = function ( xhr ) {
+        if ( xhr.lengthComputable ) {
+            var percentComplete = xhr.loaded / xhr.total * 100;
+            console.log( Math.round(percentComplete, 2) + '% downloaded' );
+        }
+    };
+    var onError = function ( xhr ) { };
+    var objLoader = new THREE.OBJLoader();
+    objLoader.setPath( 'models/' );
+    objLoader.load( 'lamp.obj', function ( object ) {
+        scene.add( object );
+        object.position.x = 3;
+        object.position.z = 3;
+        object.scale.set(0.6, 0.3, 0.6);
+        testObject = object;
+        lampLight = new THREE.PointLight(0xfff8ab, 0.7, 4);
+        lampLight.position.set(3, lampHeight, 3)
+        scene.add(lampLight);
+    }, onProgress, onError );
 
     //// Position cube mesh to be right in front of you.
     //cube.position.set(0, controls.userHeight, -1);
@@ -203,7 +223,7 @@ function onLoad() {
             map: lookAroundTexture,
             transparent: true,
     })
-    lookAroundCylinder = new THREE.Mesh(cylinderGeometry, lookAroundCylinder);
+    lookAroundCylinder = new THREE.Mesh(cylinderGeometry, lookAroundCylinderMaterial);
     lookAroundCylinder.position.y = -1000;
     scene.add(lookAroundCylinder);
 
@@ -238,14 +258,13 @@ function onLoad() {
 }
 
 function onTextureLoaded(texture) {
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(boxSize, boxSize);
+    //texture.wrapS = THREE.RepeatWrapping;
+    //texture.wrapT = THREE.RepeatWrapping;
+    //texture.repeat.set(boxSize, boxSize);
 
     var geometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
     var material = new THREE.MeshBasicMaterial({
         map: texture,
-        color: 0x01BE00,
         side: THREE.BackSide
     });
 
@@ -342,6 +361,7 @@ function animate(timestamp) {
         if(floorPosition != null)
         {
             testObject.position.set(point.x, point.y, point.z);
+            lampLight.position.set(point.x, point.y + lampHeight, point.z);
         }
     }
     if(state == PLACE_COUCH)
@@ -395,7 +415,9 @@ function onClick(e) {
     {
         if(state == LOOK_AROUND)
         {
-            if(lookingAt(testObject)) {state = PLACE_LAMP};
+            if(lookingAt(testObject)) {
+                state = PLACE_LAMP;
+            };
             if(lookingAt(couch)) {state = PLACE_COUCH};
             if(isNearColorSelector()) 
             {
@@ -420,8 +442,8 @@ function onClick(e) {
                     targetWall = 2;
                 }
 
-                console.log("Changing wall color");
-                console.log(targetWall);
+                lookAroundCylinder.position.y = 0;
+                window.setTimeout(function(){lookAroundCylinder.position.y = 2000}, 1000);
             };
         }
         else if(state == PLACE_LAMP)
@@ -443,6 +465,7 @@ function onClick(e) {
         else if(state == EDIT_WALL_COLOR)
         {
             state = LOOK_AROUND;
+            lookAroundCylinder.position.y = -1000;
         }
     }
 }
