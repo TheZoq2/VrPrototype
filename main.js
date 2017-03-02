@@ -36,6 +36,7 @@ var EDIT_WALL_COLOR = 3;
 
 var state = LOOK_AROUND
 var targetWall = 0;
+var wallAngleOffset = -90;
 
 //Sphere textures
 var paintbucketCylinder;
@@ -63,6 +64,7 @@ function onLoad() {
     camera.position.y = controls.userHeight;
     camera.position.x = 0;
     camera.position.z = 0;
+    camera.rotation.y = 0.5;
 
     // Apply VR stereo rendering to renderer.
     effect = new THREE.VREffect(renderer);
@@ -101,14 +103,12 @@ function onLoad() {
     materials.push(new THREE.MeshPhongMaterial());
     materials.push(new THREE.MeshPhongMaterial());
     materials.push(new THREE.MeshPhongMaterial());
-    materials.push(new THREE.MeshPhongMaterial());
 
     var xGeometry = new THREE.BoxGeometry(0.1, 10, 10);
     var zGeometry = new THREE.BoxGeometry(10, 10, 0.1);
     var wall1 = new THREE.Mesh(xGeometry, materials[0]);
     var wall2 = new THREE.Mesh(xGeometry, materials[1]);
     var wall3 = new THREE.Mesh(zGeometry, materials[2]);
-    var wall4 = new THREE.Mesh(zGeometry, materials[3]);
     wall1.position.x = roomX;
     wall2.position.x = -roomX;
     wall3.position.z = roomZ;
@@ -124,6 +124,13 @@ function onLoad() {
     var objLoader = new THREE.OBJLoader();
     objLoader.setPath( 'models/' );
     objLoader.load( 'wallWindows.obj', function ( object ) {
+        object.traverse( function ( child ) {
+            if ( child instanceof THREE.Mesh ) {
+                materials.push(child.material);
+            }
+        } );
+
+
         object.position.z = -roomZ;
         scene.add( object );
         walls.push(object);
@@ -132,7 +139,7 @@ function onLoad() {
     scene.add(wall1);
     scene.add(wall2);
     scene.add(wall3);
-    scene.add(wall4);
+    //scene.add(wall4);
 
     walls.push(wall1);
     walls.push(wall2);
@@ -164,6 +171,12 @@ function onLoad() {
     floor = new THREE.Mesh(floorGeometry, floorMaterial);
     scene.add(floor);
 
+    var ceilingGeometry = new THREE.BoxGeometry(10, 0.1, 10);
+    ceilingMaterial = new THREE.MeshPhongMaterial();
+    ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+    ceiling.position.y = 5;
+    scene.add(ceiling);
+
 
     var circumference = 20;
     var radius = circumference / 3.14 / 2;
@@ -194,6 +207,7 @@ function onLoad() {
     vrButton = new webvrui.EnterVRButton(renderer.domElement, uiOptions);
     vrButton.on('exit', function() {
         camera.quaternion.set(0, 0, 0, 1);
+        camera.rotation.y = 0.5;
         //camera.position.set(0, controls.userHeight, 0);
     });
     vrButton.on('hide', function() {
@@ -298,6 +312,9 @@ function animate(timestamp) {
     var delta = Math.min(timestamp - lastRenderTime, 500);
     lastRenderTime = timestamp;
 
+    var cameraAngle = camera.rotation.y;
+    var cameraDegrees = cameraAngle / (3.14 * 2) * 360;
+    var camera_degrees_x = camera.rotation.x / (3.14 * 2) * 360;
 
     // Only update controls if we're presenting.
     if (vrButton.isPresenting()) {
@@ -322,6 +339,13 @@ function animate(timestamp) {
             couch.position.set(point.x, point.y, point.z);
         }
     }
+    if(state == EDIT_WALL_COLOR)
+    {
+        var hue = (cameraDegrees-wallAngleOffset) / 90 + 0.5;
+        var saturation = ((camera_degrees_x + 20) / 45);
+        console.log(saturation);
+        materials[targetWall].color.setHSL(hue, saturation, 0.5);
+    }
 
 
     if(isNearColorSelector())
@@ -345,15 +369,14 @@ function onResize(e) {
 
 function onClick(e) {
     floorPosition = floorPositionFromCamera();
-    console.log(floorPosition);
 
-    console.log(state);
+    var cameraAngle = camera.rotation.y;
+    var cameraDegrees = cameraAngle / (3.14 * 2) * 360;
+    var camera_degrees_x = camera.rotation.x / (3.14 * 2) * 360;
+    console.log(cameraDegrees)
 
-    console.log(e.button)
     if(e.button == 2)
     {
-        camera.position = floorPosition;
-        console.log("Moving user");
         e.preventDefault();
     }
     else
@@ -362,6 +385,32 @@ function onClick(e) {
         {
             if(lookingAt(testObject)) {state = PLACE_LAMP};
             if(lookingAt(couch)) {state = PLACE_COUCH};
+            if(isNearColorSelector()) 
+            {
+                state = EDIT_WALL_COLOR;
+                //Forward
+                if(-45 < cameraDegrees && cameraDegrees < 45)
+                {
+                    targetWall = 3;
+                }
+                //Left
+                else if(-135 < cameraDegrees && cameraDegrees < -45)
+                {
+                    targetWall = 0;
+                }
+                //right
+                else if(45 < cameraDegrees && cameraDegrees < 135)
+                {
+                    targetWall = 1;
+                }
+                else
+                {
+                    targetWall = 2;
+                }
+
+                console.log("Changing wall color");
+                console.log(targetWall);
+            };
         }
         else if(state == PLACE_LAMP)
         {
@@ -378,6 +427,10 @@ function onClick(e) {
                 couch.position.set(point.x, point.y, point.z);
                 state = LOOK_AROUND
             }
+        }
+        else if(state == EDIT_WALL_COLOR)
+        {
+            state = LOOK_AROUND;
         }
     }
 }
