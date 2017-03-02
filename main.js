@@ -41,6 +41,9 @@ var targetWall = 0;
 var paintbucketCylinder;
 var paintbucketMaterial;
 
+var lookAroundCylinder;
+var lookAroundCylinderMaterial;
+
 function onLoad() {
     // Setup three.js WebGL renderer. Note: Antialiasing is a big performance hit.
     // Only enable it if you actually need to.
@@ -170,6 +173,7 @@ function onLoad() {
     var height = 5;
 
     var paintbucketTexture = new THREE.TextureLoader().load( "img/paintbuckets.png" );
+    var lookAroundTexture = new THREE.TextureLoader().load( "img/lookAroundUi.png" );
     var cylinderGeometry = new THREE.CylinderGeometry( radius, radius, height, 60, 1, true );
     cylinderGeometry.applyMatrix( new THREE.Matrix4().makeScale( -1, 1, 1 ) );
     cylinderGeometry.applyMatrix( new THREE.Matrix4().makeTranslation(0, controls.userHeight, 0));
@@ -181,6 +185,14 @@ function onLoad() {
     })
     paintbucketCylinder = new THREE.Mesh(cylinderGeometry, paintbucketMaterial);
     scene.add(paintbucketCylinder);
+
+    lookAroundCylinderMaterial = new THREE.MeshBasicMaterial({
+            map: lookAroundTexture,
+            transparent: true,
+    })
+    lookAroundCylinder = new THREE.Mesh(cylinderGeometry, lookAroundCylinder);
+    lookAroundCylinder.position.y = -1000;
+    scene.add(lookAroundCylinder);
 
     window.addEventListener('resize', onResize, true);
     window.addEventListener('vrdisplaypresentchange', onResize, true);
